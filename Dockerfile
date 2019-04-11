@@ -1,0 +1,30 @@
+FROM php:7.3.4-fpm-alpine3.9
+
+MAINTAINER awesome-laravel-api
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+RUN curl -s https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin/ --filename=composer \
+    && composer config -g repo.packagist composer https://packagist.laravel-china.org
+
+RUN apk update \
+    && apk add --no-cache nginx \
+    && docker-php-ext-install bcmath \
+    && mkdir /run/nginx \
+    && mkdir /data
+
+ADD ./docker/nginx-conf/host.conf /etc/nginx/conf.d/default.conf
+
+COPY . /data/
+
+COPY ./docker/entrypoint.sh /
+
+RUN cd /data && composer install
+
+WORKDIR /data
+
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 80
+
+ENTRYPOINT ["/entrypoint.sh"]
